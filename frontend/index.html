@@ -1,158 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Encrypt App with Login</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        #login-section,
-        #app-section {
-            max-width: 400px;
-            margin: auto;
-        }
-
-        #app-section {
-            display: none;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            padding: 8px;
-            margin: 6px 0;
-            box-sizing: border-box;
-        }
-
-        button {
-            padding: 10px;
-            width: 100%;
-            cursor: pointer;
-        }
-
-        #message-area {
-            margin-top: 10px;
-            color: green;
-        }
-
-        #error-area {
-            margin-top: 10px;
-            color: red;
-        }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Encrypt/Decrypt Demo</title>
 </head>
 
 <body>
-
-    <div id="login-section">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Username" autocomplete="off" />
-        <input type="password" id="password" placeholder="Password" autocomplete="off" />
+    <h2>Login (use username: admin, password: password)</h2>
+    <div id="loginDiv">
+        <input id="username" placeholder="Username" /><br />
+        <input id="password" type="password" placeholder="Password" /><br />
         <button onclick="login()">Login</button>
-        <p id="login-error" style="color:red;"></p>
     </div>
 
-    <div id="app-section">
+    <div id="appDiv" style="display:none;">
         <h2>Encrypt Message</h2>
-        <input type="password" id="password_encrypt" placeholder="Enter your secret word" autocomplete="off" />
-        <textarea id="message" placeholder="Enter message to encrypt"></textarea>
-        <button onclick="encrypt()">Encrypt & Save</button>
-        <div id="message-area"></div>
-        <div id="error-area"></div>
+        <textarea id="message" rows="4" cols="50" placeholder="Enter message"></textarea><br />
+        <input id="key" placeholder="Enter key" /><br />
+        <button onclick="encryptMessage()">Encrypt</button><br /><br />
 
-        <h2>Retrieve Message</h2>
-        <input type="password" id="password_decrypt" placeholder="Enter your secret word" autocomplete="off" />
-        <button onclick="retrieve()">Retrieve Message</button>
-        <p id="result"></p>
+        <h2>Decrypt Message</h2>
+        <textarea id="encrypted" rows="4" cols="50" placeholder="Paste encrypted text"></textarea><br />
+        <input id="key2" placeholder="Enter key" /><br />
+        <button onclick="decryptMessage()">Decrypt</button><br /><br />
+
+        <div id="output"></div>
     </div>
 
     <script>
-        // Constant login credentials (change as you want)
-        const validUsername = "user123";
-        const validPassword = "pass123";
+        const backendUrl = "https://your-backend.onrender.com"; // Change to your Render URL
 
         function login() {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-
-            if (u === validUsername && p === validPassword) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('app-section').style.display = 'block';
-                document.getElementById('login-error').innerText = '';
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+            if (user === "admin" && pass === "password") {
+                document.getElementById("loginDiv").style.display = "none";
+                document.getElementById("appDiv").style.display = "block";
             } else {
-                document.getElementById('login-error').innerText = 'Invalid username or password.';
+                alert("Invalid username or password");
             }
         }
 
-        async function encrypt() {
-            const password = document.getElementById('password_encrypt').value;
-            const message = document.getElementById('message').value;
-            const msgArea = document.getElementById('message-area');
-            const errArea = document.getElementById('error-area');
-
-            msgArea.innerText = '';
-            errArea.innerText = '';
-
-            if (!password || !message) {
-                errArea.innerText = "Please enter both secret word and message.";
+        async function encryptMessage() {
+            const message = document.getElementById("message").value;
+            const key = document.getElementById("key").value;
+            if (!message || !key) {
+                alert("Enter both message and key");
                 return;
             }
-
-            try {
-                const res = await fetch('http://localhost:5000/encrypt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password, message })
-                });
-
-                const data = await res.json();
-                if (res.ok) {
-                    msgArea.innerText = data.message;
-                    document.getElementById('message').value = '';
-                    document.getElementById('password_encrypt').value = '';
-                } else {
-                    errArea.innerText = data.error || 'Encryption failed';
-                }
-            } catch (e) {
-                errArea.innerText = 'Network error';
+            const res = await fetch(`${backendUrl}/encrypt`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message, key }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById("encrypted").value = data.encrypted;
+                document.getElementById("message").value = "";
+                document.getElementById("output").innerText = "Encryption successful!";
+            } else {
+                alert(data.error || "Error encrypting");
             }
         }
 
-        async function retrieve() {
-            const password = document.getElementById('password_decrypt').value;
-            const result = document.getElementById('result');
-            const errArea = document.getElementById('error-area');
-
-            errArea.innerText = '';
-            result.innerText = '';
-
-            if (!password) {
-                errArea.innerText = "Please enter your secret word.";
+        async function decryptMessage() {
+            const encrypted = document.getElementById("encrypted").value;
+            const key = document.getElementById("key2").value;
+            if (!encrypted || !key) {
+                alert("Enter both encrypted text and key");
                 return;
             }
-
-            try {
-                const res = await fetch('http://localhost:5000/retrieve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
-                });
-
-                const data = await res.json();
-                if (res.ok) {
-                    result.innerText = "Decrypted message: " + data.message;
-                } else {
-                    errArea.innerText = data.error || 'Retrieval failed';
-                }
-            } catch (e) {
-                errArea.innerText = 'Network error';
+            const res = await fetch(`${backendUrl}/decrypt`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ encrypted, key }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById("output").innerText = "Decrypted message: " + data.message;
+            } else {
+                alert(data.error || "Error decrypting");
             }
         }
     </script>
-
 </body>
 
 </html>
