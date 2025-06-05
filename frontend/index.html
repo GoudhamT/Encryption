@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Encrypt/Decrypt</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        textarea,
+        input,
+        button {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body onload="checkAuth()">
+    <button onclick="logout()" style="float:right;">Logout</button>
+    <h2>Encrypt Message</h2>
+    <textarea id="message" placeholder="Enter message"></textarea>
+    <input type="text" id="key" placeholder="Enter key" />
+    <button onclick="encryptMessage()">Encrypt</button>
+    <p><strong>Encrypted:</strong> <span id="encrypted"></span></p>
+
+    <h2>Decrypt Message</h2>
+    <textarea id="encryptedMsg" placeholder="Paste encrypted message"></textarea>
+    <input type="text" id="decryptKey" placeholder="Enter key" />
+    <button onclick="decryptMessage()">Decrypt</button>
+    <p><strong>Decrypted:</strong> <span id="decrypted"></span></p>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
