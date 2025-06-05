@@ -6,10 +6,7 @@ from cryptography.fernet import Fernet
 app = Flask(__name__)
 CORS(app)
 
-# Generate key from user password (simple)
 def get_fernet(key_str):
-    # Ensure key is 32 url-safe base64 bytes: pad or hash accordingly
-    # For simplicity, we hash the user key to 32 bytes base64
     import base64, hashlib
     k = hashlib.sha256(key_str.encode()).digest()
     return Fernet(base64.urlsafe_b64encode(k))
