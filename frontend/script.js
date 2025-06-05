@@ -1,4 +1,4 @@
-const backendURL = "https://encryption-2-bxiw.onrender.com"; // update after deployment
+const backendURL = "https://encryption-3-2dk9.onrender.com"; // update after deployment
 
 const validUsername = "admin";
 const validPassword = "secret123";
