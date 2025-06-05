@@ -1,35 +1,67 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
-import hashlib
+import os
 
 app = Flask(__name__)
+CORS(app)
 
-def generate_key(secret_key):
-    return base64.urlsafe_b64encode(hashlib.sha256(secret_key.encode()).digest())
+# In-memory storage: password -> { encrypted message, salt }
+storage = {}
 
-@app.route("/encrypt", methods=["POST"])
-def encrypt():
-    data = request.json
-    key = generate_key(data["key"])
-    f = Fernet(key)
-    encrypted = f.encrypt(data["message"].encode()).decode()
-    return jsonify({"encrypted": encrypted})
+def derive_key(password: str, salt: bytes) -> bytes:
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100_000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    return key
 
-@app.route("/decrypt", methods=["POST"])
-def decrypt():
-    data = request.json
-    key = generate_key(data["key"])
-    f = Fernet(key)
+@app.route('/encrypt', methods=['POST'])
+def encrypt_message():
+    data = request.get_json()
+    password = data.get("password")
+    message = data.get("message")
+
+    if not password or not message:
+        return jsonify({"error": "Password and message required"}), 400
+
+    salt = os.urandom(16)
+    key = derive_key(password, salt)
+    fernet = Fernet(key)
+    encrypted = fernet.encrypt(message.encode())
+
+    # Save encrypted message + salt
+    storage[password] = {
+        "encrypted": encrypted.decode(),
+        "salt": base64.b64encode(salt).decode()
+    }
+
+    return jsonify({"message": "Message encrypted and saved"})
+
+@app.route('/retrieve', methods=['POST'])
+def retrieve_message():
+    data = request.get_json()
+    password = data.get("password")
+    if not password or password not in storage:
+        return jsonify({"error": "Invalid password or no message found"}), 400
+
+    entry = storage[password]
+    salt = base64.b64decode(entry["salt"])
+    key = derive_key(password, salt)
+    fernet = Fernet(key)
+
     try:
-        decrypted = f.decrypt(data["encrypted"].encode()).decode()
-        return jsonify({"message": decrypted})
-    except:
-        return jsonify({"error": "Invalid key or data"}), 400
+        decrypted = fernet.decrypt(entry["encrypted"].encode()).decode()
+    except Exception as e:
+        return jsonify({"error": "Decryption failed. Wrong password?"}), 400
 
-@app.route("/")
-def home():
-    return "Encryption API is running."
+    return jsonify({"message": decrypted})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+if __name__ == '__main__':
+    app.run(debug=True)

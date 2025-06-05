@@ -1,4 +1,4 @@
-const backendURL = "https://your-backend.onrender.com"; // update after deployment
+const backendURL = "https://encryption-ythk.onrender.com"; // update after deployment
 
 const validUsername = "admin";
 const validPassword = "secret123";

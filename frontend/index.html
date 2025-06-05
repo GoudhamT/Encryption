@@ -1,42 +1,158 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <title>Encrypt/Decrypt</title>
+    <title>Encrypt App with Login</title>
     <style>
         body {
-            font-family: sans-serif;
-            max-width: 600px;
-            margin: auto;
-            padding: 20px;
+            font-family: Arial, sans-serif;
+            margin: 40px;
         }
 
-        textarea,
+        #login-section,
+        #app-section {
+            max-width: 400px;
+            margin: auto;
+        }
+
+        #app-section {
+            display: none;
+        }
+
         input,
-        button {
+        textarea {
             width: 100%;
-            margin: 10px 0;
+            padding: 8px;
+            margin: 6px 0;
+            box-sizing: border-box;
+        }
+
+        button {
             padding: 10px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        #message-area {
+            margin-top: 10px;
+            color: green;
+        }
+
+        #error-area {
+            margin-top: 10px;
+            color: red;
         }
     </style>
 </head>
 
-<body onload="checkAuth()">
-    <button onclick="logout()" style="float:right;">Logout</button>
-    <h2>Encrypt Message</h2>
-    <textarea id="message" placeholder="Enter message"></textarea>
-    <input type="text" id="key" placeholder="Enter key" />
-    <button onclick="encryptMessage()">Encrypt</button>
-    <p><strong>Encrypted:</strong> <span id="encrypted"></span></p>
+<body>
 
-    <h2>Decrypt Message</h2>
-    <textarea id="encryptedMsg" placeholder="Paste encrypted message"></textarea>
-    <input type="text" id="decryptKey" placeholder="Enter key" />
-    <button onclick="decryptMessage()">Decrypt</button>
-    <p><strong>Decrypted:</strong> <span id="decrypted"></span></p>
+    <div id="login-section">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username" autocomplete="off" />
+        <input type="password" id="password" placeholder="Password" autocomplete="off" />
+        <button onclick="login()">Login</button>
+        <p id="login-error" style="color:red;"></p>
+    </div>
 
-    <script src="script.js"></script>
+    <div id="app-section">
+        <h2>Encrypt Message</h2>
+        <input type="password" id="password_encrypt" placeholder="Enter your secret word" autocomplete="off" />
+        <textarea id="message" placeholder="Enter message to encrypt"></textarea>
+        <button onclick="encrypt()">Encrypt & Save</button>
+        <div id="message-area"></div>
+        <div id="error-area"></div>
+
+        <h2>Retrieve Message</h2>
+        <input type="password" id="password_decrypt" placeholder="Enter your secret word" autocomplete="off" />
+        <button onclick="retrieve()">Retrieve Message</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        // Constant login credentials (change as you want)
+        const validUsername = "user123";
+        const validPassword = "pass123";
+
+        function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+
+            if (u === validUsername && p === validPassword) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('app-section').style.display = 'block';
+                document.getElementById('login-error').innerText = '';
+            } else {
+                document.getElementById('login-error').innerText = 'Invalid username or password.';
+            }
+        }
+
+        async function encrypt() {
+            const password = document.getElementById('password_encrypt').value;
+            const message = document.getElementById('message').value;
+            const msgArea = document.getElementById('message-area');
+            const errArea = document.getElementById('error-area');
+
+            msgArea.innerText = '';
+            errArea.innerText = '';
+
+            if (!password || !message) {
+                errArea.innerText = "Please enter both secret word and message.";
+                return;
+            }
+
+            try {
+                const res = await fetch('http://localhost:5000/encrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password, message })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    msgArea.innerText = data.message;
+                    document.getElementById('message').value = '';
+                    document.getElementById('password_encrypt').value = '';
+                } else {
+                    errArea.innerText = data.error || 'Encryption failed';
+                }
+            } catch (e) {
+                errArea.innerText = 'Network error';
+            }
+        }
+
+        async function retrieve() {
+            const password = document.getElementById('password_decrypt').value;
+            const result = document.getElementById('result');
+            const errArea = document.getElementById('error-area');
+
+            errArea.innerText = '';
+            result.innerText = '';
+
+            if (!password) {
+                errArea.innerText = "Please enter your secret word.";
+                return;
+            }
+
+            try {
+                const res = await fetch('http://localhost:5000/retrieve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    result.innerText = "Decrypted message: " + data.message;
+                } else {
+                    errArea.innerText = data.error || 'Retrieval failed';
+                }
+            } catch (e) {
+                errArea.innerText = 'Network error';
+            }
+        }
+    </script>
+
 </body>
 
 </html>
